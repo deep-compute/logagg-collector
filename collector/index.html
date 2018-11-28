@@ -71,8 +71,6 @@
         
             <li><a class="toctree-l3" href="#basic-usage">Basic Usage</a></li>
         
-            <li><a class="toctree-l3" href="#advanced-usage">Advanced usage</a></li>
-        
             <li><a class="toctree-l3" href="#build-on-logagg">Build on logagg</a></li>
         
         </ul>
@@ -202,87 +200,87 @@ $ docker run --hostname $HOSTNAME --name serverstats --restart unless-stopped --
 <li>Run the following command to <strong>pip</strong> install <code>logagg</code>: </li>
 </ul>
 <pre><code>$ pip3 install https://github.com/deep-compute/pygtail/tarball/master/#egg=pygtail-0.6.1
-$ pip3 install git+https://github.com/deep-compute/logagg_utils.git
-$ pip3 install git+https://github.com/deep-compute/logagg_collector.git
+$ pip3 install git+https://github.com/deep-compute/logagg-utils.git
+$ pip3 install git+https://github.com/deep-compute/logagg-collector.git
 </code></pre>
 
 <h2 id="basic-usage">Basic Usage</h2>
-<h3 id="bring-up-the-nsq-instances-at-the-required-server-with-following-commands">Bring up the <code>nsq</code> instances at the required server with following commands:</h3>
 <ul>
-<li><strong>NOTE:</strong> Run each command in a seperate Terminal window</li>
-<li>nsqlookupd
-    <code>$ nsqlookupd</code></li>
-<li>nsqd -lookupd-tcp-address <strong><ip-addr or DNS></strong>:4160
-    <code>$ nsqd -lookupd-tcp-address localhost:4160</code></li>
-<li>nsqadmin -lookupd-http-address <strong><ip-addr or DNS></strong>:4161
-    <code>$ nsqadmin -lookupd-http-address localhost:4161</code></li>
+<li>Run collector</li>
 </ul>
-<h3 id="run-logagg-collector-service">Run logagg-collector service</h3>
-<p>```bash=
-$ logagg-collector runserver --no-master --data-dir /tmp/ --logaggfs-dir /logcache/</p>
+<pre><code>logagg-collector runserver --host &lt;IP/DNS&gt; --port &lt;port_number&gt; --master host=&lt;master_service_host&gt;:port=&lt;master_service_port&gt;:topic_name=&lt;topic_name&gt; --data-dir &lt;logagg_collector_data_dir&gt; --logaggfs-dir &lt;logagg-fs_logcache_dir&gt;
+</code></pre>
+
+<p>Command breakdown:
+<strong>--host <IP/DNS>:</strong> Localhost IP or DNS so that other components/services can contact logagg-collector.</p>
+<h4 id="apis">APIs</h4>
+<ul>
+<li>To see files collector is supposed to collect
+```bash=
+curl -i 'http://localhost:1099/collector/v1/get_files'</li>
+</ul>
+<pre><code>* To set NSQ details
+```bash=
+curl -i 'http://localhost:1099/collector/v1/set_nsq?nsqd_http_address=&lt;nsq-server-ip-or-DNS&gt;:4151&amp;topic_name=logagg'
+</code></pre>
+
+<ul>
+<li>To start collecting
+```bash=
+curl -i 'http://localhost:1099/collector/v1/collect</li>
+</ul>
 <pre><code>
-#### APIs
-* To see files collector is supposed to collect
-```bash=
-curl -i 'http://localhost:1099/collector/v1/get_files'
-</code></pre>
-
-<ul>
-<li>To set NSQ details
-```bash=
-curl -i 'http://localhost:1099/collector/v1/set_nsq?nsqd_http_address=<nsq-server-ip-or-DNS>:4151&amp;topic_name=logagg'</li>
-</ul>
-<pre><code>* To start collecting
-```bash=
-curl -i 'http://localhost:1099/collector/v1/collect
-</code></pre>
-
-<p><strong>Note</strong>: Replace <strong><nsq-server-ip-or-DNS></strong> with the ip of <code>nsq</code> server eg.: <strong>192.168.0.211</strong>
-<strong>Note</strong>: <strong>--volume</strong> argument is to mount local directory of log file into <code>Docker</code> <code>container</code>
-<strong>Note</strong>: <strong>--hostname</strong> argument is to use the same hostname and not the docker container hostname
-- You can check message traffic at <code>nsq</code> by going through the link:
-        <strong>http://<nsq-server-ip-or-DNS>:4171/</strong> for <strong>localhost</strong> see <a href="http://localhost:4171/">here</a>
+**Note**: Replace **&lt;nsq-server-ip-or-DNS&gt;** with the ip of `nsq` server eg.: **192.168.0.211**
+**Note**: **--volume** argument is to mount local directory of log file into `Docker` `container`
+**Note**: **--hostname** argument is to use the same hostname and not the docker container hostname
+- You can check message traffic at `nsq` by going through the link:
+        **http://&lt;nsq-server-ip-or-DNS&gt;:4171/** for **localhost** see [here](http://localhost:4171/)
 - You can see the collected logs in realtime using the following command:
-    <code>bash
-    $ nsq_tail --topic=logagg --channel=test --lookupd-http-address=&lt;nsq-server-ip-or-DNS&gt;:4161</code></p>
-<h3 id="types-of-handlers-we-support">Types of handlers we support</h3>
-<table>
-<thead>
-<tr>
-<th>Formatter-name</th>
-<th>Comments</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>logagg_collector.formatters.nginx_access</td>
-<td>See Configuration <a href="https://github.com/deep-compute/logagg/issues/61">here</a></td>
-</tr>
-<tr>
-<td>logagg_collector.formatters.mongodb</td>
-<td></td>
-</tr>
-<tr>
-<td>logagg_collector.formatters.basescript</td>
-<td></td>
-</tr>
-<tr>
-<td>logagg_collector.formatters.docker_log_file_driver</td>
-<td>See example <a href="https://github.com/deep-compute/serverstats/issues/6">here</a></td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="advanced-usage">Advanced usage</h2>
-<h4 id="run-logagg-collector-without-a-master">Run logagg-collector without a <code>master</code></h4>
-<h4 id="install-the-nsq-package-at-where-we-need-to-bring-up-the-nsq-server"><a href="http://nsq.io/deployment/installing.html">Install</a> the <code>nsq</code> package, at where we need to bring up the <code>nsq</code> server.</h4>
-<ul>
-<li>Run the following commands to install <code>nsq</code>:
-    <code>$ sudo apt-get install libsnappy-dev
+    ```bash
+    $ nsq_tail --topic=logagg --channel=test --lookupd-http-address=&lt;nsq-server-ip-or-DNS&gt;:4161
+    ```
+
+### Types of handlers we support
+| Formatter-name | Comments |
+| -------- | -------- |
+|   logagg_collector.formatters.nginx_access   | See Configuration [here](https://github.com/deep-compute/logagg/issues/61)    |
+|logagg_collector.formatters.mongodb||
+|logagg_collector.formatters.basescript||
+|logagg_collector.formatters.docker_log_file_driver|See example [here](https://github.com/deep-compute/serverstats/issues/6)|
+
+
+---
+
+## Advanced usage
+
+#### Run logagg-collector without a `master`
+####  [Install](http://nsq.io/deployment/installing.html) the `nsq` package, at where we need to bring up the `nsq` server.
+- Run the following commands to install `nsq`:
+    ```
+    $ sudo apt-get install libsnappy-dev
     $ wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
     $ tar zxvf nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
-    $ sudo cp nsq-1.0.0-compat.linux-amd64.go1.8/bin/* /usr/local/bin</code></li>
-</ul>
+    $ sudo cp nsq-1.0.0-compat.linux-amd64.go1.8/bin/* /usr/local/bin
+    ```
+### Bring up the `nsq` instances at the required server with following commands:
+- **NOTE:** Run each command in a seperate Terminal window
+- nsqlookupd
+    ```
+    $ nsqlookupd
+    ```
+- nsqd -lookupd-tcp-address **&lt;ip-addr or DNS&gt;**:4160
+    ```
+    $ nsqd -lookupd-tcp-address localhost:4160
+    ```
+- nsqadmin -lookupd-http-address **&lt;ip-addr or DNS&gt;**:4161
+    ```
+    $ nsqadmin -lookupd-http-address localhost:4161
+    ```
+### Run logagg-collector service
+```bash=
+$ logagg-collector runserver --no-master --data-dir /tmp/ --logaggfs-dir /logcache/
+</code></pre>
+
 <h3 id="how-to-create-and-use-custom-formatters-for-log-files">How to create and use custom formatters for log files</h3>
 <h4 id="step-1-make-a-directory-and-append-its-path-to-evironment-variable-pythonpath">Step 1: make a directory and append it's path to evironment variable $PYTHONPATH</h4>
 <pre><code class="bash">$ echo $PYTHONPATH
