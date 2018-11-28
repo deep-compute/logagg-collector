@@ -121,22 +121,20 @@
                 <h1 id="logagg-collector">logagg-collector</h1>
 <p><strong>Log collector for logagg</strong></p>
 <p>Track and collects all the logs from given files and parses them to make a common schema for all the logs and sends to NSQ.</p>
-<hr />
 <h2 id="prerequisites">Prerequisites</h2>
 <ul>
+<li>Python &gt;= 3.5</li>
 <li>We expect users to follow <a href="https://github.com/deep-compute/logagg/issues/85">Best practices</a> for logging their application.</li>
 <li>Most importantly, do structured logging. Since, parsing/formatting logs is way easier that way.</li>
 <li>Install, set-up and run <code>logagg-fs</code> beforehand.</li>
 </ul>
-<hr />
 <h2 id="componentsarchitectureterminology">Components/Architecture/Terminology</h2>
 <ul>
-<li><code>files</code> : Log files which are being tracked by logagg</li>
-<li><code>node</code> : The server(s) where the log <code>files</code> reside</li>
+<li><code>files</code> : Log files which are being tracked by logagg.</li>
+<li><code>node</code> : The server(s) where the log <code>files</code> reside.</li>
 <li><code>formatters</code> : The parser function that the <code>collector</code> uses to format the log lines to put it the common format.</li>
 <li><code>nsq</code> : The central location where logs are sent by <code>collector</code>(s) after formatting as messages.</li>
 </ul>
-<hr />
 <h2 id="features">Features</h2>
 <ul>
 <li>Guaranteed delivery of each log line from files to <code>nsq</code></li>
@@ -161,23 +159,16 @@
 </ul>
 </li>
 </ul>
-<hr />
 <h2 id="installation">Installation</h2>
 <blockquote>
 <p>Prerequisites: Python3.5</p>
 </blockquote>
-<h3 id="setup">Setup</h3>
-<h4 id="install-the-nsq-package-at-where-we-need-to-bring-up-the-nsq-server"><a href="http://nsq.io/deployment/installing.html">Install</a> the <code>nsq</code> package, at where we need to bring up the <code>nsq</code> server.</h4>
+<h4 id="setup">Setup</h4>
 <ul>
-<li>Run the following commands to install <code>nsq</code>:
-    <code>$ sudo apt-get install libsnappy-dev
-    $ wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
-    $ tar zxvf nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
-    $ sudo cp nsq-1.0.0-compat.linux-amd64.go1.8/bin/* /usr/local/bin</code></li>
-</ul>
-<h4 id="install-the-docker-package-at-both-collector-nodes"><a href="https://docs.docker.com/install/linux/docker-ce/ubuntu/#extra-steps-for-aufs">Install</a> the Docker package, at both <code>collector</code> nodes.</h4>
-<ul>
-<li>Run the following commands to install :
+<li>Install, setup and run a <a href="https://github.com/deep-compute/logagg-master">logagg-master</a> which collectors can register to.</li>
+<li>Install, setup and run <a href="https://deep-compute.github.io/logagg-collector/fs/">logagg-fs</a> on the same machine so that logagg-collector can efficiently track log files.</li>
+<li><a href="https://docs.docker.com/install/linux/docker-ce/ubuntu/#extra-steps-for-aufs">Install</a> the Docker package, at both <code>collector</code> nodes.
+Run the following commands to install :
     <code>$ sudo apt-get update
     $ sudo apt-get install \
         apt-transport-https \
@@ -190,15 +181,15 @@
        $(lsb_release -cs) \
        stable"
     $ sudo apt-get update
-    $ sudo apt-get install docker-ce</code></li>
-<li>Check Docker version &gt;= 17.12.1
+    $ sudo apt-get install docker-ce</code>
+Check Docker version &gt;= 17.12.1
     <code>$ sudo docker -v
     Docker version 18.03.1-ce, build 9ee9f40</code></li>
-<li>Run serverstats to store server metrics in /var/log/serverstats
+<li>Run serverstats docker container to store server metrics in /var/log/serverstats/serverstats.log file.
     <code>$ docker plugin install deepcompute/docker-file-log-driver:1.0 --alias file-log-driver
     $ docker run --hostname $HOSTNAME --name serverstats --restart unless-stopped --label formatter=logagg_collector.formatters.basescript --log-driver file-log-driver --log-opt labels=formatter --log-opt fpath=/serverstats/serverstats.log --detach deepcompute/serverstats:latest</code></li>
 </ul>
-<h3 id="install-the-logagg-collector-package-at-where-we-collect-the-logs-and-at-where-we-forward-the-logs">Install the <code>logagg-collector</code> package, at where we collect the logs and at where we forward the logs:</h3>
+<h4 id="install-the-logagg-collector-package-at-where-we-collect-the-logs-and-at-where-we-forward-the-logs">Install the <code>logagg-collector</code> package, at where we collect the logs and at where we forward the logs:</h4>
 <ul>
 <li>Run the following command to <strong>pip</strong> install <code>logagg</code>: 
     <code>$ pip3 install https://github.com/deep-compute/pygtail/tarball/master/#egg=pygtail-0.6.1
@@ -274,6 +265,15 @@ curl -i 'http://localhost:1099/collector/v1/collect
 </table>
 <hr />
 <h2 id="advanced-usage">Advanced usage</h2>
+<h4 id="run-logagg-collector-without-a-master">Run logagg-collector without a <code>master</code></h4>
+<h4 id="install-the-nsq-package-at-where-we-need-to-bring-up-the-nsq-server"><a href="http://nsq.io/deployment/installing.html">Install</a> the <code>nsq</code> package, at where we need to bring up the <code>nsq</code> server.</h4>
+<ul>
+<li>Run the following commands to install <code>nsq</code>:
+    <code>$ sudo apt-get install libsnappy-dev
+    $ wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
+    $ tar zxvf nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
+    $ sudo cp nsq-1.0.0-compat.linux-amd64.go1.8/bin/* /usr/local/bin</code></li>
+</ul>
 <h3 id="how-to-create-and-use-custom-formatters-for-log-files">How to create and use custom formatters for log files</h3>
 <h4 id="step-1-make-a-directory-and-append-its-path-to-evironment-variable-pythonpath">Step 1: make a directory and append it's path to evironment variable $PYTHONPATH</h4>
 <pre><code class="bash">$ echo $PYTHONPATH
