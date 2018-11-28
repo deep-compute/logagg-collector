@@ -168,23 +168,29 @@
 <li>Install, setup and run a <a href="https://github.com/deep-compute/logagg-master">logagg-master</a> which collectors can register to.</li>
 <li>Install, setup and run <a href="https://deep-compute.github.io/logagg-collector/fs/">logagg-fs</a> on the same machine so that logagg-collector can efficiently track log files.</li>
 <li><a href="https://docs.docker.com/install/linux/docker-ce/ubuntu/#extra-steps-for-aufs">Install</a> the Docker package, at both <code>collector</code> nodes.
-Run the following commands to install :
-    <code>$ sudo apt-get update
-    $ sudo apt-get install \
-        apt-transport-https \
-        ca-certificates \
-        curl \
-        software-properties-common
-    $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    $ sudo add-apt-repository \
-       "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-       $(lsb_release -cs) \
-       stable"
-    $ sudo apt-get update
-    $ sudo apt-get install docker-ce</code>
-Check Docker version &gt;= 17.12.1
-    <code>$ sudo docker -v
-    Docker version 18.03.1-ce, build 9ee9f40</code></li>
+Run the following commands to install :</li>
+</ul>
+<pre><code>$ sudo apt-get update
+$ sudo apt-get install \
+apt-transport-https \
+ca-certificates \
+curl \
+software-properties-common
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+$ sudo add-apt-repository \
+&quot;deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+$(lsb_release -cs) \
+stable&quot;
+$ sudo apt-get update
+$ sudo apt-get install docker-ce
+</code></pre>
+
+<p>Check Docker version &gt;= 17.12.1</p>
+<pre><code>$ sudo docker -v
+Docker version 18.03.1-ce, build 9ee9f40
+</code></pre>
+
+<ul>
 <li>Run serverstats docker container to store server metrics in /var/log/serverstats/serverstats.log file.</li>
 </ul>
 <pre><code>$ docker plugin install deepcompute/docker-file-log-driver:1.0 --alias file-log-driver
@@ -193,12 +199,13 @@ $ docker run --hostname $HOSTNAME --name serverstats --restart unless-stopped --
 
 <h4 id="install-the-logagg-collector-package-at-where-we-collect-the-logs-and-at-where-we-forward-the-logs">Install the <code>logagg-collector</code> package, at where we collect the logs and at where we forward the logs:</h4>
 <ul>
-<li>Run the following command to <strong>pip</strong> install <code>logagg</code>: 
-    <code>$ pip3 install https://github.com/deep-compute/pygtail/tarball/master/#egg=pygtail-0.6.1
-    $ pip3 install git+https://github.com/deep-compute/logagg_utils.git
-    $ pip3 install git+https://github.com/deep-compute/logagg_collector.git</code></li>
+<li>Run the following command to <strong>pip</strong> install <code>logagg</code>: </li>
 </ul>
-<hr />
+<pre><code>$ pip3 install https://github.com/deep-compute/pygtail/tarball/master/#egg=pygtail-0.6.1
+$ pip3 install git+https://github.com/deep-compute/logagg_utils.git
+$ pip3 install git+https://github.com/deep-compute/logagg_collector.git
+</code></pre>
+
 <h2 id="basic-usage">Basic Usage</h2>
 <h3 id="bring-up-the-nsq-instances-at-the-required-server-with-following-commands">Bring up the <code>nsq</code> instances at the required server with following commands:</h3>
 <ul>
