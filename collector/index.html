@@ -185,10 +185,12 @@ Run the following commands to install :
 Check Docker version &gt;= 17.12.1
     <code>$ sudo docker -v
     Docker version 18.03.1-ce, build 9ee9f40</code></li>
-<li>Run serverstats docker container to store server metrics in /var/log/serverstats/serverstats.log file.
-    <code>$ docker plugin install deepcompute/docker-file-log-driver:1.0 --alias file-log-driver
-    $ docker run --hostname $HOSTNAME --name serverstats --restart unless-stopped --label formatter=logagg_collector.formatters.basescript --log-driver file-log-driver --log-opt labels=formatter --log-opt fpath=/serverstats/serverstats.log --detach deepcompute/serverstats:latest</code></li>
+<li>Run serverstats docker container to store server metrics in /var/log/serverstats/serverstats.log file.</li>
 </ul>
+<pre><code>$ docker plugin install deepcompute/docker-file-log-driver:1.0 --alias file-log-driver
+$ docker run --hostname $HOSTNAME --name serverstats --restart unless-stopped --label formatter=logagg_collector.formatters.basescript --log-driver file-log-driver --log-opt labels=formatter --log-opt fpath=/serverstats/serverstats.log --detach deepcompute/serverstats:latest
+</code></pre>
+
 <h4 id="install-the-logagg-collector-package-at-where-we-collect-the-logs-and-at-where-we-forward-the-logs">Install the <code>logagg-collector</code> package, at where we collect the logs and at where we forward the logs:</h4>
 <ul>
 <li>Run the following command to <strong>pip</strong> install <code>logagg</code>: 
