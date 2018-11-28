@@ -213,7 +213,15 @@ $ pip3 install git+https://github.com/deep-compute/logagg-collector.git
 
 <p>Command breakdown:
 <br/>
-<strong>--host &lt;IP/DNS&gt;:</strong> Localhost IP or DNS so that other components/services can contact logagg-collector.</p>
+<strong>--host &lt;IP/DNS&gt;:</strong> Localhost IP or DNS so that other components/services can contact logagg-collector.
+<br/>
+<strong>--port &lt;port_number&gt;:</strong> Port number on which logagg-collector service runs on.
+<br/>
+<strong>--master host=&lt;master_service_host&gt;:port=&lt;master_service_port&gt;:topic_name=&lt;topic_name&gt;:</strong> Host and port where master service is running along with the topic name where the logs are supposed to be sent. Mention same details for aggregating logs in same place.
+<br/>
+<strong>--data-dir &lt;logagg_collector_data_dir&gt;:</strong> Path to a directory where logagg-collector stores it's data (files being tracked, NSQ details). Specify different directories for collectors running on same machine.
+<br/>
+<strong>--logaggfs-dir &lt;logagg-fs_logcache_dirgt;:</strong> Path to the <code>logagg-fs</code> 'logcache' directory.</p>
 <h4 id="apis">APIs</h4>
 <ul>
 <li>To see files collector is supposed to collect
