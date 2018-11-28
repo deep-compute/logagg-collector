@@ -1,0 +1,214 @@
+{
+    "docs": [
+        {
+            "location": "/",
+            "text": "logagg-fs\n\n\nFuse file system for logagg\n\n\nA fuse file-system wich has to be mounted in the file path like '/var/log' so that logagg-collector can collect logs from the files in the file-system.\nThis guarentees no logs are missed from the files even when the log-files are rotated.\n\n\nlogagg-collector\n\n\nLog collector for logagg\n\n\nCollects all the logs from the server and parses it for making a common schema for all the logs and sends to NSQ.",
+            "title": "Home"
+        },
+        {
+            "location": "/#logagg-fs",
+            "text": "Fuse file system for logagg  A fuse file-system wich has to be mounted in the file path like '/var/log' so that logagg-collector can collect logs from the files in the file-system.\nThis guarentees no logs are missed from the files even when the log-files are rotated.",
+            "title": "logagg-fs"
+        },
+        {
+            "location": "/#logagg-collector",
+            "text": "Log collector for logagg  Collects all the logs from the server and parses it for making a common schema for all the logs and sends to NSQ.",
+            "title": "logagg-collector"
+        },
+        {
+            "location": "/collector/",
+            "text": "logagg-collector\n\n\nLog collector for logagg\n\n\nTrack and collects all the logs from given files and parses them to make a common schema for all the logs and sends to NSQ.\n\n\n\n\nPrerequisites\n\n\n\n\nWe expect users to follow \nBest practices\n for logging their application.\n\n\nMost importantly, do structured logging. Since, parsing/formatting logs is way easier that way.\n\n\nInstall, set-up and run \nlogagg-fs\n beforehand.\n\n\n\n\n\n\nComponents/Architecture/Terminology\n\n\n\n\nfiles\n : Log files which are being tracked by logagg\n\n\nnode\n : The server(s) where the log \nfiles\n reside\n\n\nformatters\n : The parser function that the \ncollector\n uses to format the log lines to put it the common format.\n\n\nnsq\n : The central location where logs are sent by \ncollector\n(s) after formatting as messages.\n\n\n\n\n\n\nFeatures\n\n\n\n\nGuaranteed delivery of each log line from files to \nnsq\n\n\nReduced latency between a log being generated an being present in the \nnsq\n\n\nOptions to add custom \nformatters\n\n\nFile poll if log file not yet generated\n\n\nWorks on rotational log files\n\n\nCustom \nformatters\n to support parsing of any log file.\n\n\nOutput format of processed log lines (dictionary)\n\n\nid\n (str) - A unique id per log with time ordering. Useful to avoid storing duplicates.\n\n\ntimestamp\n (str) - ISO Format time. eg:\n\n\ndata\n (dict) - Parsed log data\n\n\nraw\n (str) - Raw log line read from the log file\n\n\nhost\n (str) - Hostname of the node where this log was generated\n\n\nformatter\n (str) - name of the formatter that processed the raw log line\n\n\nfile\n (str) - Full path of the file in the host where this log line came from\n\n\ntype\n (str) - One of \"log\", \"metric\" (Is there one more type?)\n\n\nlevel\n (str) - Log level of the log line.\n\n\nevent\n (str) - LOG event\n\n\nerror\n (bool) - True if collection handler failed during processing\n\n\nerror_tb\n (str) - Error traceback\n\n\n\n\n\n\n\n\n\n\nInstallation\n\n\n\n\nPrerequisites: Python3.5\n\n\n\n\nSetup\n\n\nInstall\n the \nnsq\n package, at where we need to bring up the \nnsq\n server.\n\n\n\n\nRun the following commands to install \nnsq\n:\n    \n$ sudo apt-get install libsnappy-dev\n    $ wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz\n    $ tar zxvf nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz\n    $ sudo cp nsq-1.0.0-compat.linux-amd64.go1.8/bin/* /usr/local/bin\n\n\n\n\nInstall\n the Docker package, at both \ncollector\n nodes.\n\n\n\n\nRun the following commands to install :\n    \n$ sudo apt-get update\n    $ sudo apt-get install \\\n        apt-transport-https \\\n        ca-certificates \\\n        curl \\\n        software-properties-common\n    $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -\n    $ sudo add-apt-repository \\\n       \"deb [arch=amd64] https://download.docker.com/linux/ubuntu \\\n       $(lsb_release -cs) \\\n       stable\"\n    $ sudo apt-get update\n    $ sudo apt-get install docker-ce\n\n\nCheck Docker version >= 17.12.1\n    \n$ sudo docker -v\n    Docker version 18.03.1-ce, build 9ee9f40\n\n\nRun serverstats to store server metrics in /var/log/serverstats\n    \n$ docker plugin install deepcompute/docker-file-log-driver:1.0 --alias file-log-driver\n    $ docker run --hostname $HOSTNAME --name serverstats --restart unless-stopped --label formatter=logagg_collector.formatters.basescript --log-driver file-log-driver --log-opt labels=formatter --log-opt fpath=/serverstats/serverstats.log --detach deepcompute/serverstats:latest\n\n\n\n\nInstall the \nlogagg-collector\n package, at where we collect the logs and at where we forward the logs:\n\n\n\n\nRun the following command to \npip\n install \nlogagg\n: \n    \n$ pip3 install https://github.com/deep-compute/pygtail/tarball/master/#egg=pygtail-0.6.1\n    $ pip3 install git+https://github.com/deep-compute/logagg_utils.git\n    $ pip3 install git+https://github.com/deep-compute/logagg_collector.git\n\n\n\n\n\n\nBasic Usage\n\n\nBring up the \nnsq\n instances at the required server with following commands:\n\n\n\n\nNOTE:\n Run each command in a seperate Terminal window\n\n\nnsqlookupd\n    \n$ nsqlookupd\n\n\nnsqd -lookupd-tcp-address \n:4160\n    \n$ nsqd -lookupd-tcp-address localhost:4160\n\n\nnsqadmin -lookupd-http-address \n:4161\n    \n$ nsqadmin -lookupd-http-address localhost:4161\n\n\n\n\nRun logagg-collector service\n\n\n```bash=\n$ logagg-collector runserver --no-master --data-dir /tmp/ --logaggfs-dir /logcache/\n\n\n\n#### APIs\n* To see files collector is supposed to collect\n```bash=\ncurl -i 'http://localhost:1099/collector/v1/get_files'\n\n\n\n\n\n\nTo set NSQ details\n```bash=\ncurl -i 'http://localhost:1099/collector/v1/set_nsq?nsqd_http_address=\n:4151&topic_name=logagg'\n\n\n\n\n* To start collecting\n```bash=\ncurl -i 'http://localhost:1099/collector/v1/collect\n\n\n\n\nNote\n: Replace \n with the ip of \nnsq\n server eg.: \n192.168.0.211\n\n\nNote\n: \n--volume\n argument is to mount local directory of log file into \nDocker\n \ncontainer\n\n\nNote\n: \n--hostname\n argument is to use the same hostname and not the docker container hostname\n- You can check message traffic at \nnsq\n by going through the link:\n        \nhttp://\n:4171/\n for \nlocalhost\n see \nhere\n\n- You can see the collected logs in realtime using the following command:\n    \nbash\n    $ nsq_tail --topic=logagg --channel=test --lookupd-http-address=<nsq-server-ip-or-DNS>:4161\n\n\nTypes of handlers we support\n\n\n\n\n\n\n\n\nFormatter-name\n\n\nComments\n\n\n\n\n\n\n\n\n\n\nlogagg_collector.formatters.nginx_access\n\n\nSee Configuration \nhere\n\n\n\n\n\n\nlogagg_collector.formatters.mongodb\n\n\n\n\n\n\n\n\nlogagg_collector.formatters.basescript\n\n\n\n\n\n\n\n\nlogagg_collector.formatters.docker_log_file_driver\n\n\nSee example \nhere\n\n\n\n\n\n\n\n\n\n\nAdvanced usage\n\n\nHow to create and use custom formatters for log files\n\n\nStep 1: make a directory and append it's path to evironment variable $PYTHONPATH\n\n\n$ echo $PYTHONPATH\n\n$ mkdir customformatters\n$ #Now append the path to $PYTHONPATH\n$ export PYTHONPATH=$PYTHONPATH:/home/path/to/customformatters/\n\n$ echo $PYTHONPATH\n:/home/path/to/customformatters\n\n\n\n\nStep 2: Create a another directory and put your formatter file(s) inside it.\n\n\n$ cd customformatters/\n$ mkdir myformatters\n$ cd myformatters/\n$ touch formatters.py\n$ touch __init__.py\n$ echo 'import formatters' >> __init__.py\n$ #Now write your formatter functions inside the formatters.py file\n\n\n\n\nStep 3: Write your formatter functions inside the formatters.py file\n\n\nImportant:\n \n1. Only \npython standard modules\n can be imported in formatters.py file\n2. A formatter function should return a \ndict()\n \ndatatype\n\n3. The 'dict()' should only contain keys which are mentioned in the above \nlog structure\n.\n4. Sample formatter functions:\n    ```python\n    import json \n    import re\n\n\nsample_log_line = '2018-02-07T06:37:00.297610Z [Some_event] [Info] [Hello_there]'\n\ndef sample_formatter(log_line):\n    log = re.sub('[\\[+\\]]', '',log_line).split(' ')\n    timestamp = log[0]\n    event = log[1]\n    level = log[2]\n    data = dict({'message': log[3]})\n\n    return dict(timestamp = timestamp,\n                 event = event,\n                 level = level,\n                 data = data,\n                )\n ```\n\n\n\nTo see more examples, look \nhere\n \n\n\n\n\nCheck if the custom handler works in \npython interpreter\n like for logagg.\n    \npython\n    >>> import myformatters\n    >>> sample_log_line = '2018-02-07T06:37:00.297610Z [Some_event] [Info] [Hello_there]'\n    >>> output = myformatters.formatters.sample_formatter(sample_log_line)\n    >>> from pprint import pprint\n    >>> pprint(output)\n    {'data': {'message': 'Hello_there'},\n     'event': 'Some_event',\n     'level': 'Info',\n     'timestamp': '2018-02-07T06:37:00.297610Z'}\n\n\nPseudo logagg collect commands:\n    \nbash\n    $ sudo logagg collect --file file=logfile.log:myformatters.formatters.sample_formatter --nsqtopic logagg --nsqd-http-address localhost:4151\n\n\n\n\n\n\nDebugging\n\n\nYou can store logagg collector/forwarder logs into files using \nbasescript\n --log-file argument or \ndocker file log driver\n\n\n$ sudo logagg --log-file /var/log/logagg/collector.log collect file=/var/log/serverstats/serverstats.log:formatter=logagg.formatters.basescript --nsqtopic logagg --nsqd-http-address <nsq-server-ip-or-DNS>:4151\n\n\n\n\nIf there are multiple files being tracked by multiple collectors on multiple nodes, the collector information can be seen in \"Heartbeat\" topic of NSQ.\nEvery running collector sends a hearbeat to this topic (default interval = 30 seconds). The heartbeat format is as follows:\n\n \ntimestamp\n : Timestamp of the recieved heartbeat.\n\n \nheartbeat_number\n : The heartbeat number since the collector started running.\n\n \nhost\n : Hostname of the node on which the collector is running.\n\n \nnsq_topic\n : The nsq topic which the collector is using.\n* \nfiles_tracked\n : list of files that are being tracked by the collector followed by the fomatter.\n\n\nYou can run the following command to see the information:\n\n\n$ nsq_tail --topic=Heartbeat --channel=test --lookupd-http-address=<nsq-server-ip-or-DNS>:4161\n\n\n\n\nBuild on logagg\n\n\nYou're more than welcome to hack on this:-)\n\n\n$ git clone https://github.com/deep-compute/logagg\n$ cd logagg\n$ sudo python setup.py install\n$ docker build -t logagg .",
+            "title": "Collector"
+        },
+        {
+            "location": "/collector/#logagg-collector",
+            "text": "Log collector for logagg  Track and collects all the logs from given files and parses them to make a common schema for all the logs and sends to NSQ.",
+            "title": "logagg-collector"
+        },
+        {
+            "location": "/collector/#prerequisites",
+            "text": "We expect users to follow  Best practices  for logging their application.  Most importantly, do structured logging. Since, parsing/formatting logs is way easier that way.  Install, set-up and run  logagg-fs  beforehand.",
+            "title": "Prerequisites"
+        },
+        {
+            "location": "/collector/#componentsarchitectureterminology",
+            "text": "files  : Log files which are being tracked by logagg  node  : The server(s) where the log  files  reside  formatters  : The parser function that the  collector  uses to format the log lines to put it the common format.  nsq  : The central location where logs are sent by  collector (s) after formatting as messages.",
+            "title": "Components/Architecture/Terminology"
+        },
+        {
+            "location": "/collector/#features",
+            "text": "Guaranteed delivery of each log line from files to  nsq  Reduced latency between a log being generated an being present in the  nsq  Options to add custom  formatters  File poll if log file not yet generated  Works on rotational log files  Custom  formatters  to support parsing of any log file.  Output format of processed log lines (dictionary)  id  (str) - A unique id per log with time ordering. Useful to avoid storing duplicates.  timestamp  (str) - ISO Format time. eg:  data  (dict) - Parsed log data  raw  (str) - Raw log line read from the log file  host  (str) - Hostname of the node where this log was generated  formatter  (str) - name of the formatter that processed the raw log line  file  (str) - Full path of the file in the host where this log line came from  type  (str) - One of \"log\", \"metric\" (Is there one more type?)  level  (str) - Log level of the log line.  event  (str) - LOG event  error  (bool) - True if collection handler failed during processing  error_tb  (str) - Error traceback",
+            "title": "Features"
+        },
+        {
+            "location": "/collector/#installation",
+            "text": "Prerequisites: Python3.5",
+            "title": "Installation"
+        },
+        {
+            "location": "/collector/#setup",
+            "text": "",
+            "title": "Setup"
+        },
+        {
+            "location": "/collector/#install-the-nsq-package-at-where-we-need-to-bring-up-the-nsq-server",
+            "text": "Run the following commands to install  nsq :\n     $ sudo apt-get install libsnappy-dev\n    $ wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz\n    $ tar zxvf nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz\n    $ sudo cp nsq-1.0.0-compat.linux-amd64.go1.8/bin/* /usr/local/bin",
+            "title": "Install the nsq package, at where we need to bring up the nsq server."
+        },
+        {
+            "location": "/collector/#install-the-docker-package-at-both-collector-nodes",
+            "text": "Run the following commands to install :\n     $ sudo apt-get update\n    $ sudo apt-get install \\\n        apt-transport-https \\\n        ca-certificates \\\n        curl \\\n        software-properties-common\n    $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -\n    $ sudo add-apt-repository \\\n       \"deb [arch=amd64] https://download.docker.com/linux/ubuntu \\\n       $(lsb_release -cs) \\\n       stable\"\n    $ sudo apt-get update\n    $ sudo apt-get install docker-ce  Check Docker version >= 17.12.1\n     $ sudo docker -v\n    Docker version 18.03.1-ce, build 9ee9f40  Run serverstats to store server metrics in /var/log/serverstats\n     $ docker plugin install deepcompute/docker-file-log-driver:1.0 --alias file-log-driver\n    $ docker run --hostname $HOSTNAME --name serverstats --restart unless-stopped --label formatter=logagg_collector.formatters.basescript --log-driver file-log-driver --log-opt labels=formatter --log-opt fpath=/serverstats/serverstats.log --detach deepcompute/serverstats:latest",
+            "title": "Install the Docker package, at both collector nodes."
+        },
+        {
+            "location": "/collector/#install-the-logagg-collector-package-at-where-we-collect-the-logs-and-at-where-we-forward-the-logs",
+            "text": "Run the following command to  pip  install  logagg : \n     $ pip3 install https://github.com/deep-compute/pygtail/tarball/master/#egg=pygtail-0.6.1\n    $ pip3 install git+https://github.com/deep-compute/logagg_utils.git\n    $ pip3 install git+https://github.com/deep-compute/logagg_collector.git",
+            "title": "Install the logagg-collector package, at where we collect the logs and at where we forward the logs:"
+        },
+        {
+            "location": "/collector/#basic-usage",
+            "text": "",
+            "title": "Basic Usage"
+        },
+        {
+            "location": "/collector/#bring-up-the-nsq-instances-at-the-required-server-with-following-commands",
+            "text": "NOTE:  Run each command in a seperate Terminal window  nsqlookupd\n     $ nsqlookupd  nsqd -lookupd-tcp-address  :4160\n     $ nsqd -lookupd-tcp-address localhost:4160  nsqadmin -lookupd-http-address  :4161\n     $ nsqadmin -lookupd-http-address localhost:4161",
+            "title": "Bring up the nsq instances at the required server with following commands:"
+        },
+        {
+            "location": "/collector/#run-logagg-collector-service",
+            "text": "```bash=\n$ logagg-collector runserver --no-master --data-dir /tmp/ --logaggfs-dir /logcache/  \n#### APIs\n* To see files collector is supposed to collect\n```bash=\ncurl -i 'http://localhost:1099/collector/v1/get_files'   To set NSQ details\n```bash=\ncurl -i 'http://localhost:1099/collector/v1/set_nsq?nsqd_http_address= :4151&topic_name=logagg'   * To start collecting\n```bash=\ncurl -i 'http://localhost:1099/collector/v1/collect  Note : Replace   with the ip of  nsq  server eg.:  192.168.0.211  Note :  --volume  argument is to mount local directory of log file into  Docker   container  Note :  --hostname  argument is to use the same hostname and not the docker container hostname\n- You can check message traffic at  nsq  by going through the link:\n         http:// :4171/  for  localhost  see  here \n- You can see the collected logs in realtime using the following command:\n     bash\n    $ nsq_tail --topic=logagg --channel=test --lookupd-http-address=<nsq-server-ip-or-DNS>:4161",
+            "title": "Run logagg-collector service"
+        },
+        {
+            "location": "/collector/#types-of-handlers-we-support",
+            "text": "Formatter-name  Comments      logagg_collector.formatters.nginx_access  See Configuration  here    logagg_collector.formatters.mongodb     logagg_collector.formatters.basescript     logagg_collector.formatters.docker_log_file_driver  See example  here",
+            "title": "Types of handlers we support"
+        },
+        {
+            "location": "/collector/#advanced-usage",
+            "text": "",
+            "title": "Advanced usage"
+        },
+        {
+            "location": "/collector/#how-to-create-and-use-custom-formatters-for-log-files",
+            "text": "",
+            "title": "How to create and use custom formatters for log files"
+        },
+        {
+            "location": "/collector/#step-1-make-a-directory-and-append-its-path-to-evironment-variable-pythonpath",
+            "text": "$ echo $PYTHONPATH\n\n$ mkdir customformatters\n$ #Now append the path to $PYTHONPATH\n$ export PYTHONPATH=$PYTHONPATH:/home/path/to/customformatters/\n\n$ echo $PYTHONPATH\n:/home/path/to/customformatters",
+            "title": "Step 1: make a directory and append it's path to evironment variable $PYTHONPATH"
+        },
+        {
+            "location": "/collector/#step-2-create-a-another-directory-and-put-your-formatter-files-inside-it",
+            "text": "$ cd customformatters/\n$ mkdir myformatters\n$ cd myformatters/\n$ touch formatters.py\n$ touch __init__.py\n$ echo 'import formatters' >> __init__.py\n$ #Now write your formatter functions inside the formatters.py file",
+            "title": "Step 2: Create a another directory and put your formatter file(s) inside it."
+        },
+        {
+            "location": "/collector/#step-3-write-your-formatter-functions-inside-the-formatterspy-file",
+            "text": "Important:  \n1. Only  python standard modules  can be imported in formatters.py file\n2. A formatter function should return a  dict()   datatype \n3. The 'dict()' should only contain keys which are mentioned in the above  log structure .\n4. Sample formatter functions:\n    ```python\n    import json \n    import re  sample_log_line = '2018-02-07T06:37:00.297610Z [Some_event] [Info] [Hello_there]'\n\ndef sample_formatter(log_line):\n    log = re.sub('[\\[+\\]]', '',log_line).split(' ')\n    timestamp = log[0]\n    event = log[1]\n    level = log[2]\n    data = dict({'message': log[3]})\n\n    return dict(timestamp = timestamp,\n                 event = event,\n                 level = level,\n                 data = data,\n                )\n ```  To see more examples, look  here     Check if the custom handler works in  python interpreter  like for logagg.\n     python\n    >>> import myformatters\n    >>> sample_log_line = '2018-02-07T06:37:00.297610Z [Some_event] [Info] [Hello_there]'\n    >>> output = myformatters.formatters.sample_formatter(sample_log_line)\n    >>> from pprint import pprint\n    >>> pprint(output)\n    {'data': {'message': 'Hello_there'},\n     'event': 'Some_event',\n     'level': 'Info',\n     'timestamp': '2018-02-07T06:37:00.297610Z'}  Pseudo logagg collect commands:\n     bash\n    $ sudo logagg collect --file file=logfile.log:myformatters.formatters.sample_formatter --nsqtopic logagg --nsqd-http-address localhost:4151",
+            "title": "Step 3: Write your formatter functions inside the formatters.py file"
+        },
+        {
+            "location": "/collector/#debugging",
+            "text": "You can store logagg collector/forwarder logs into files using  basescript  --log-file argument or  docker file log driver  $ sudo logagg --log-file /var/log/logagg/collector.log collect file=/var/log/serverstats/serverstats.log:formatter=logagg.formatters.basescript --nsqtopic logagg --nsqd-http-address <nsq-server-ip-or-DNS>:4151  If there are multiple files being tracked by multiple collectors on multiple nodes, the collector information can be seen in \"Heartbeat\" topic of NSQ.\nEvery running collector sends a hearbeat to this topic (default interval = 30 seconds). The heartbeat format is as follows:   timestamp  : Timestamp of the recieved heartbeat.   heartbeat_number  : The heartbeat number since the collector started running.   host  : Hostname of the node on which the collector is running.   nsq_topic  : The nsq topic which the collector is using.\n*  files_tracked  : list of files that are being tracked by the collector followed by the fomatter.  You can run the following command to see the information:  $ nsq_tail --topic=Heartbeat --channel=test --lookupd-http-address=<nsq-server-ip-or-DNS>:4161",
+            "title": "Debugging"
+        },
+        {
+            "location": "/collector/#build-on-logagg",
+            "text": "You're more than welcome to hack on this:-)  $ git clone https://github.com/deep-compute/logagg\n$ cd logagg\n$ sudo python setup.py install\n$ docker build -t logagg .",
+            "title": "Build on logagg"
+        },
+        {
+            "location": "/fs/",
+            "text": "logagg-fs\n\n\nFuse file system\n  for \nlogagg-collector\n. Captures logs when it is written to a file and caches them until the \nlogagg-collector\n collects and processes the contents.\n\n\nFeatures\n\n\n\n\nGuarantees capturing every log line\n\n\nRotation proof\n\n\nOne time set-up\n\n\nSupports file patterns; i.e. \n/var/log/syslog*\n; rather than fpaths\n\n\n\n\nLimitations\n\n\n\n\nNo way of getting logs from files before start-up of the program\n\n\nRequires a reboot of the machine after set-up is done\n\n\n\n\nComponents/Architecture/Terminology\n\n\n\n\nmountpoint\n: path to the directory where logs are being written (e.g. /var/log).\n\n\nlogcache\n: path to the directory where the logagg-fs program stores all of it's data.\n\n\nlogcache/mirror\n: directory inside logcache path which is mounted to the \nmountpoint\n directory path. If \nlogcache\n path is '/logcache' and the \nmountpoint\n is '/var/log', then the directory '/logcache/mirror' is mounted on to '/var/log'.\n\n\nlogcache/trackfiles.txt\n: file inside logcache directory where file-patterns are mentioned that need to be tracked by logagg-fs (eg. '/var/log/syslog')\n\n\nlogcache/logs\n: path to directory where log-files that are cached temprorarily until processed and deleted.\n\n\n\n\nPrerequisites\n\n\n\n\nPython => 3.6\n\n\nExpected restart of server after mounting to non-empty directories like /var/log/\n\n\n\n\nInstallation\n\n\nDependencies\n\n\n$ sudo apt install libfuse-dev python3-dev python3-pip pkg-config build-essential python3-pip\n$ pip3 install setuptools\n\n\n\n\nInstall logagg-fs\n\n\n\n\nNOTE:\n Make sure you are a root user.\n\n\n\n\nRoot user\n\n\n$ pip3 install git+https://github.com/deepcompute/logagg-collector.git\n\n\n\n\nCheck installation\n\n\n$ logagg-fs -h\nUsage: \n    Logagg Log collection FUSE filesystem\n\n    logagg-fs [mountpoint] [options]\n\nOptions:\n    --version              show program's version number and exit\n    -h, --help             show this help message and exit\n    -o opt,[opt...]        mount options\n    -o root=PATH           mountpoint\n    -o loglevel=DEBUG/INFO\n                           level of logger\n    -o logfile=PATH        file path to store logs\nUsage: \n    Logagg Log collection FUSE filesystem\n\n    logagg-fs [mountpoint] [options]\n\nOptions:\n    --version              show program's version number and exit\n    -h, --help             show this help message and exit\n    -o opt,[opt...]        mount options\n    -o root=PATH           mountpoint\n    -o loglevel=DEBUG/INFO\n                           level of logger\n    -o logfile=PATH        file path to store logs\n\n\n\n\nSetting up  logagg-fs for mounting /logcache/mirror to /var/log\n\n\nMake a directory so that logagg-fs can use it as \nlogcache\n\n\n# mkdir /logcache/\n\n\n\n\nWrite configuration to mount /logcache/mirror to /var/log/ directory in \nfstab\n\n\n# vim /etc/fstab\n# Add the following line to /etc/fstab: \"logagg-fs /var/log/ fuse rw,user,auto,exec,nonempty,allow_other,root=/logcache/,loglevel=INFO,logfile=/logcache/fuse.log 0 0\"\n\n\n\n\nCommand breakdown:\n\n\n\n\nlogagg-fs\n: the path to logagg-fs program\n\n\n/var/log/\n: the mountpoint\n\n\nroot=/logcache/\n: the data/logcache directory creater for logagg-fs\n\n\nlogfile=/logcache/fuse.log\n: path where logagg-fs is supposed to store own logs\n\n\n\n\n\n\nSetting up logrotate for the log file of logagg-fs (Optional)\n\n\nCreate configuration file of logrotate\n\n\n$ vim /etc/logrotate.d/logagg-fs\n\n\n\n\nWrite the following lines in the file\n\n\n/logcache/fuse.log {\nweekly\nrotate 3\nsize 10M\ncompress\ndelaycompress\n}\n\n\n\n\nRun & Reboot to load the configuration in /etc/fstab\n\n\n\n\nIMPORTANT:\n Copy files all inside mountpoint directory to a temprorary location.\n\n\n\n\n# mkdir ~/temp_logs && cp -R /var/log/* ~/temp_logs/\n\n\n\n\nMount logagg-fs from fstab configuration\n\n\n# mount /var/log/\n\n\n\n\nCopy back files to mountpoint directory\n\n\n# cp -R ~/temp_logs/log/* /var/log/\n\n\n\n\nReboot to make changes to take effect and running programs to use the mountpoint as storage location for logs\n\n\n# reboot\n\n\n\n\nUsage\n\n\nCheck if '/logcache/mirror' is mounted properly to '/var/log'\n\n\n# ls /var/log/\n# # The same as:\n# ls /logcache/mirror/\n\n\n\n\n# cat /logcache/mirror/test\n# cat: /logcache/mirror/test: No such file or directory\n# echo \"testing..\" > /var/log/test\n# cat /logcache/mirror/test\ntesting..\n\n\n\n\nCheck caching of log files\n\n\n# ls /logcache/logs/ # No logs yet\n# # Now add the files to be tracked in logcache/trackfiles.txt file\n# echo \"/var/log/syslog\" >> /logcache/trackfiles.txt\n# # Takes atmost 10sec to update state\n# ls /logcache/logs/ # To see the cached log-files\nf5fdf6ea0ea92860c6a6b2b354bfcbbc.1536590719.4519932.log\n# tail -f /logcache/logs/* # The contents of the file are being written simultaneously to cached files\n\n\n\n\n\n\n\n\nJust remove the file pattern from \n/logcache/trackfiles.txt\n to stop caching of logs\n\n\n\n\n\n\nTo unmount directory\n\n\n\n\n\n\n# umount /var/log\n\n\n\n\nOr Delete configuration from /etc/fstab\n\n\n# reboot",
+            "title": "Fs"
+        },
+        {
+            "location": "/fs/#logagg-fs",
+            "text": "Fuse file system   for  logagg-collector . Captures logs when it is written to a file and caches them until the  logagg-collector  collects and processes the contents.",
+            "title": "logagg-fs"
+        },
+        {
+            "location": "/fs/#features",
+            "text": "Guarantees capturing every log line  Rotation proof  One time set-up  Supports file patterns; i.e.  /var/log/syslog* ; rather than fpaths",
+            "title": "Features"
+        },
+        {
+            "location": "/fs/#limitations",
+            "text": "No way of getting logs from files before start-up of the program  Requires a reboot of the machine after set-up is done",
+            "title": "Limitations"
+        },
+        {
+            "location": "/fs/#componentsarchitectureterminology",
+            "text": "mountpoint : path to the directory where logs are being written (e.g. /var/log).  logcache : path to the directory where the logagg-fs program stores all of it's data.  logcache/mirror : directory inside logcache path which is mounted to the  mountpoint  directory path. If  logcache  path is '/logcache' and the  mountpoint  is '/var/log', then the directory '/logcache/mirror' is mounted on to '/var/log'.  logcache/trackfiles.txt : file inside logcache directory where file-patterns are mentioned that need to be tracked by logagg-fs (eg. '/var/log/syslog')  logcache/logs : path to directory where log-files that are cached temprorarily until processed and deleted.",
+            "title": "Components/Architecture/Terminology"
+        },
+        {
+            "location": "/fs/#prerequisites",
+            "text": "Python => 3.6  Expected restart of server after mounting to non-empty directories like /var/log/",
+            "title": "Prerequisites"
+        },
+        {
+            "location": "/fs/#installation",
+            "text": "",
+            "title": "Installation"
+        },
+        {
+            "location": "/fs/#dependencies",
+            "text": "$ sudo apt install libfuse-dev python3-dev python3-pip pkg-config build-essential python3-pip\n$ pip3 install setuptools",
+            "title": "Dependencies"
+        },
+        {
+            "location": "/fs/#install-logagg-fs",
+            "text": "NOTE:  Make sure you are a root user.",
+            "title": "Install logagg-fs"
+        },
+        {
+            "location": "/fs/#root-user",
+            "text": "$ pip3 install git+https://github.com/deepcompute/logagg-collector.git",
+            "title": "Root user"
+        },
+        {
+            "location": "/fs/#check-installation",
+            "text": "$ logagg-fs -h\nUsage: \n    Logagg Log collection FUSE filesystem\n\n    logagg-fs [mountpoint] [options]\n\nOptions:\n    --version              show program's version number and exit\n    -h, --help             show this help message and exit\n    -o opt,[opt...]        mount options\n    -o root=PATH           mountpoint\n    -o loglevel=DEBUG/INFO\n                           level of logger\n    -o logfile=PATH        file path to store logs\nUsage: \n    Logagg Log collection FUSE filesystem\n\n    logagg-fs [mountpoint] [options]\n\nOptions:\n    --version              show program's version number and exit\n    -h, --help             show this help message and exit\n    -o opt,[opt...]        mount options\n    -o root=PATH           mountpoint\n    -o loglevel=DEBUG/INFO\n                           level of logger\n    -o logfile=PATH        file path to store logs",
+            "title": "Check installation"
+        },
+        {
+            "location": "/fs/#setting-up-logagg-fs-for-mounting-logcachemirror-to-varlog",
+            "text": "",
+            "title": "Setting up  logagg-fs for mounting /logcache/mirror to /var/log"
+        },
+        {
+            "location": "/fs/#make-a-directory-so-that-logagg-fs-can-use-it-as-logcache",
+            "text": "# mkdir /logcache/",
+            "title": "Make a directory so that logagg-fs can use it as logcache"
+        },
+        {
+            "location": "/fs/#write-configuration-to-mount-logcachemirror-to-varlog-directory-in-fstab",
+            "text": "# vim /etc/fstab\n# Add the following line to /etc/fstab: \"logagg-fs /var/log/ fuse rw,user,auto,exec,nonempty,allow_other,root=/logcache/,loglevel=INFO,logfile=/logcache/fuse.log 0 0\"",
+            "title": "Write configuration to mount /logcache/mirror to /var/log/ directory in fstab"
+        },
+        {
+            "location": "/fs/#command-breakdown",
+            "text": "logagg-fs : the path to logagg-fs program  /var/log/ : the mountpoint  root=/logcache/ : the data/logcache directory creater for logagg-fs  logfile=/logcache/fuse.log : path where logagg-fs is supposed to store own logs",
+            "title": "Command breakdown:"
+        },
+        {
+            "location": "/fs/#setting-up-logrotate-for-the-log-file-of-logagg-fs-optional",
+            "text": "Create configuration file of logrotate  $ vim /etc/logrotate.d/logagg-fs  Write the following lines in the file  /logcache/fuse.log {\nweekly\nrotate 3\nsize 10M\ncompress\ndelaycompress\n}",
+            "title": "Setting up logrotate for the log file of logagg-fs (Optional)"
+        },
+        {
+            "location": "/fs/#run-reboot-to-load-the-configuration-in-etcfstab",
+            "text": "IMPORTANT:  Copy files all inside mountpoint directory to a temprorary location.   # mkdir ~/temp_logs && cp -R /var/log/* ~/temp_logs/  Mount logagg-fs from fstab configuration  # mount /var/log/  Copy back files to mountpoint directory  # cp -R ~/temp_logs/log/* /var/log/  Reboot to make changes to take effect and running programs to use the mountpoint as storage location for logs  # reboot",
+            "title": "Run &amp; Reboot to load the configuration in /etc/fstab"
+        },
+        {
+            "location": "/fs/#usage",
+            "text": "Check if '/logcache/mirror' is mounted properly to '/var/log'  # ls /var/log/\n# # The same as:\n# ls /logcache/mirror/  # cat /logcache/mirror/test\n# cat: /logcache/mirror/test: No such file or directory\n# echo \"testing..\" > /var/log/test\n# cat /logcache/mirror/test\ntesting..  Check caching of log files  # ls /logcache/logs/ # No logs yet\n# # Now add the files to be tracked in logcache/trackfiles.txt file\n# echo \"/var/log/syslog\" >> /logcache/trackfiles.txt\n# # Takes atmost 10sec to update state\n# ls /logcache/logs/ # To see the cached log-files\nf5fdf6ea0ea92860c6a6b2b354bfcbbc.1536590719.4519932.log\n# tail -f /logcache/logs/* # The contents of the file are being written simultaneously to cached files    Just remove the file pattern from  /logcache/trackfiles.txt  to stop caching of logs    To unmount directory    # umount /var/log  Or Delete configuration from /etc/fstab  # reboot",
+            "title": "Usage"
+        }
+    ]
+}
