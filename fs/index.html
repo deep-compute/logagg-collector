@@ -179,15 +179,15 @@ logagg-fs 0.3.1
 # Add the following line to /etc/fstab: &quot;logagg-fs /var/log/ fuse rw,user,auto,exec,nonempty,allow_other,root=/logcache/,loglevel=INFO,logfile=/logcache/fuse.log 0 0&quot;
 </code></pre>
 
-<p>Command breakdown:
+<p><strong>Command breakdown:</strong>
 <br />
-<em> <code>logagg-fs</code>: the path to logagg-fs program
+<em> <code>logagg-fs</code>:</em> the path to logagg-fs program
 <br />
-</em> <code>/var/log/</code>: the mountpoint
+<em> <code>/var/log/</code>:</em> the mountpoint
 <br />
-<em> <code>root=/logcache/</code>: the data/logcache directory creater for logagg-fs
+<em> <code>root=/logcache/</code>:</em> the data/logcache directory creater for logagg-fs
 <br />
-</em> <code>logfile=/logcache/fuse.log</code>: path where logagg-fs is supposed to store own logs</p>
+<em> <code>logfile=/logcache/fuse.log:</code></em> path where logagg-fs is supposed to store own logs</p>
 <p><img alt="image" src="https://user-images.githubusercontent.com/33823698/45282589-fd569880-b4f8-11e8-99e4-0207d2bbbf9f.png" /></p>
 <h4 id="setting-up-logrotate-for-the-log-file-of-logagg-fs-optional">Setting up logrotate for the log file of logagg-fs (Optional)</h4>
 <p>Create configuration file of logrotate</p>
