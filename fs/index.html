@@ -174,19 +174,19 @@ logagg-fs 0.3.1
 <pre><code># mkdir /logcache/
 </code></pre>
 
-<h4 id="write-configuration-to-mount-logcachemirror-to-varlog-directory-in-fstab">Write configuration to mount /logcache/mirror to /var/log/ directory in <code>fstab</code></h4>
+<h4 id="write-configuration-to-mount-logcachemirror-to-varlog-directory-in-fstab">Write configuration to mount /logcache/mirror to /var/log/ directory in <a href="https://en.wikipedia.org/wiki/Fstab">fstab</a></h4>
 <pre><code># vim /etc/fstab
 # Add the following line to /etc/fstab: &quot;logagg-fs /var/log/ fuse rw,user,auto,exec,nonempty,allow_other,root=/logcache/,loglevel=INFO,logfile=/logcache/fuse.log 0 0&quot;
 </code></pre>
 
 <p><strong>Command breakdown:</strong>
-<br />
+<br/>
 <em> <code>logagg-fs</code>:</em> the path to logagg-fs program
-<br />
+<br/>
 <em> <code>/var/log/</code>:</em> the mountpoint
-<br />
+<br/>
 <em> <code>root=/logcache/</code>:</em> the data/logcache directory creater for logagg-fs
-<br />
+<br/>
 <em> <code>logfile=/logcache/fuse.log:</code></em> path where logagg-fs is supposed to store own logs</p>
 <p><img alt="image" src="https://user-images.githubusercontent.com/33823698/45282589-fd569880-b4f8-11e8-99e4-0207d2bbbf9f.png" /></p>
 <h4 id="setting-up-logrotate-for-the-log-file-of-logagg-fs-optional">Setting up logrotate for the log file of logagg-fs (Optional)</h4>
