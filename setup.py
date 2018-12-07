@@ -3,7 +3,7 @@ from setuptools import find_packages
 
 setup(
     name='logagg-collector',
-    version='0.3.3',
+    version='0.0.1',
     description='logs aggregation framework',
     keywords='logagg',
     author='Deep Compute, LLC',
@@ -35,7 +35,7 @@ setup(
         'Operating System :: OS Independent',
         'License :: OSI Approved :: MIT License',
     ],
-    test_suite='test.suite_maker',
+    #test_suite='test.suite_maker',
     entry_points={
         'console_scripts': [
             'logagg-collector = logagg_collector:main',
