@@ -10,21 +10,25 @@ from deeputil import Dummy
 
 DUMMY_LOG = Dummy()
 
-if not hasattr(fuse, '__version__'):
-    raise RuntimeError("your fuse-py doesn't know of fuse.__version__, probably it's too old.")
+if not hasattr(fuse, "__version__"):
+    raise RuntimeError(
+        "your fuse-py doesn't know of fuse.__version__, probably it's too old."
+    )
 
 fuse.fuse_python_api = (0, 2)
 
-fuse.feature_assert('stateful_files', 'has_init')
+fuse.feature_assert("stateful_files", "has_init")
+
 
 def flag2mode(flags):
-    md = {os.O_RDONLY: 'r', os.O_WRONLY: 'w', os.O_RDWR: 'w+'}
+    md = {os.O_RDONLY: "r", os.O_WRONLY: "w", os.O_RDWR: "w+"}
     m = md[flags & (os.O_RDONLY | os.O_WRONLY | os.O_RDWR)]
 
     if flags | os.O_APPEND:
-        m = m.replace('w', 'a', 1)
+        m = m.replace("w", "a", 1)
 
     return m
+
 
 def logit(fn):
     def _fn(*args, **kwargs):
@@ -34,20 +38,19 @@ def logit(fn):
         try:
             r = fn(*args, **kwargs)
         except Exception:
-            self.log.exception('logit_exception_{}'.format(fnname))
+            self.log.exception("logit_exception_{}".format(fnname))
             raise
         return r
 
     return _fn
 
-class MirrorFSFile(object):
 
+class MirrorFSFile(object):
     @logit
     def __init__(self, path, flags, *mode):
         self.frompath = path
-        self.path = path = self.log_cache_dir + '/mirror' + path
-        self.file = os.fdopen(os.open(path, flags, *mode),
-                              flag2mode(flags))
+        self.path = path = self.log_cache_dir + "/mirror" + path
+        self.file = os.fdopen(os.open(path, flags, *mode), flag2mode(flags))
         self.fd = self.file.fileno()
 
     @logit
@@ -66,13 +69,13 @@ class MirrorFSFile(object):
         self.file.close()
 
     def _fflush(self):
-        if 'w' in self.file.mode or 'a' in self.file.mode:
+        if "w" in self.file.mode or "a" in self.file.mode:
             self.file.flush()
 
     @logit
     def fsync(self, isfsyncfile):
         self._fflush()
-        if isfsyncfile and hasattr(os, 'fdatasync'):
+        if isfsyncfile and hasattr(os, "fdatasync"):
             os.fdatasync(self.fd)
         else:
             os.fsync(self.fd)
@@ -117,9 +120,11 @@ class MirrorFSFile(object):
 
         # Convert fcntl-ish lock parameters to Python's weird
         # lockf(3)/flock(2) medley locking API...
-        op = { fcntl.F_UNLCK : fcntl.LOCK_UN,
-               fcntl.F_RDLCK : fcntl.LOCK_SH,
-               fcntl.F_WRLCK : fcntl.LOCK_EX }[kw['l_type']]
+        op = {
+            fcntl.F_UNLCK: fcntl.LOCK_UN,
+            fcntl.F_RDLCK: fcntl.LOCK_SH,
+            fcntl.F_WRLCK: fcntl.LOCK_EX,
+        }[kw["l_type"]]
         if cmd == fcntl.F_GETLK:
             return -EOPNOTSUPP
         elif cmd == fcntl.F_SETLK:
@@ -130,14 +135,11 @@ class MirrorFSFile(object):
         else:
             return -EINVAL
 
-        fcntl.lockf(self.fd, op, kw['l_start'], kw['l_len'])
+        fcntl.lockf(self.fd, op, kw["l_start"], kw["l_len"])
+
 
 class MirrorFS(Fuse):
-
-    def __init__(self,
-            file_class=None,
-            *args,
-            **kw):
+    def __init__(self, file_class=None, *args, **kw):
         Fuse.__init__(self, *args, **kw)
 
         self.log = DUMMY_LOG
@@ -152,14 +154,15 @@ class MirrorFS(Fuse):
     @log_cache_dir.setter
     def log_cache_dir(self, v):
         self._log_cache_dir = v
-        self._mirror_dir = v + '/mirror'
+        self._mirror_dir = v + "/mirror"
         if not os.path.exists(self._mirror_dir):
             os.makedirs(self._mirror_dir)
 
     def _mappath(self, path):
         _path = self._mirror_dir + path
-        self.log.debug('_mappath', fromp=path, top=_path,
-                log_cache_dir=self._log_cache_dir)
+        self.log.debug(
+            "_mappath", fromp=path, top=_path, log_cache_dir=self._log_cache_dir
+        )
         return _path
 
     @logit
@@ -175,7 +178,7 @@ class MirrorFS(Fuse):
     @logit
     def readdir(self, path, offset):
         path = self._mappath(path)
-        self.log.debug('readdir', path=path, offset=offset)
+        self.log.debug("readdir", path=path, offset=offset)
         for e in os.listdir(path):
             yield fuse.Direntry(e)
 
@@ -239,12 +242,12 @@ class MirrorFS(Fuse):
         path = self._mappath(path)
         os.utime(path, times)
 
-#    The following utimens method would do the same as the above utime method.
-#    We can't make it better though as the Python stdlib doesn't know of
-#    subsecond preciseness in acces/modify times.
-#
-#    def utimens(self, path, ts_acc, ts_mod):
-#      os.utime(path, (ts_acc.tv_sec, ts_mod.tv_sec))
+    #    The following utimens method would do the same as the above utime method.
+    #    We can't make it better though as the Python stdlib doesn't know of
+    #    subsecond preciseness in acces/modify times.
+    #
+    #    def utimens(self, path, ts_acc, ts_mod):
+    #      os.utime(path, (ts_acc.tv_sec, ts_mod.tv_sec))
 
     @logit
     def access(self, path, mode):
@@ -252,25 +255,25 @@ class MirrorFS(Fuse):
         if not os.access(path, mode):
             return -EACCES
 
-#    This is how we could add stub extended attribute handlers...
-#    (We can't have ones which aptly delegate requests to the underlying fs
-#    because Python lacks a standard xattr interface.)
-#
-#    def getxattr(self, path, name, size):
-#        val = name.swapcase() + '@' + path
-#        if size == 0:
-#            # We are asked for size of the value.
-#            return len(val)
-#        return val
-#
-#    def listxattr(self, path, size):
-#        # We use the "user" namespace to please XFS utils
-#        aa = ["user." + a for a in ("foo", "bar")]
-#        if size == 0:
-#            # We are asked for size of the attr list, ie. joint size of attrs
-#            # plus null separators.
-#            return len("".join(aa)) + len(aa)
-#        return aa
+    #    This is how we could add stub extended attribute handlers...
+    #    (We can't have ones which aptly delegate requests to the underlying fs
+    #    because Python lacks a standard xattr interface.)
+    #
+    #    def getxattr(self, path, name, size):
+    #        val = name.swapcase() + '@' + path
+    #        if size == 0:
+    #            # We are asked for size of the value.
+    #            return len(val)
+    #        return val
+    #
+    #    def listxattr(self, path, size):
+    #        # We use the "user" namespace to please XFS utils
+    #        aa = ["user." + a for a in ("foo", "bar")]
+    #        if size == 0:
+    #            # We are asked for size of the attr list, ie. joint size of attrs
+    #            # plus null separators.
+    #            return len("".join(aa)) + len(aa)
+    #        return aa
 
     @logit
     def statfs(self):
