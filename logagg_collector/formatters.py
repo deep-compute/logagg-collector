@@ -2,22 +2,28 @@ import re
 import ujson as json
 import datetime
 
-class RawLog(dict): pass
 
-#FIXME: cannot do both returns .. should it?
+class RawLog(dict):
+    pass
+
+
+# FIXME: cannot do both returns .. should it?
 def docker_file_log_driver(line):
-    log = json.loads(json.loads(line)['msg'])
-    if 'formatter' in log.get('extra'):
-        return RawLog(dict(formatter=log.get('extra').get('formatter'),
-                            raw=log.get('message'),
-                            host=log.get('host'),
-                            timestamp=log.get('timestamp'),
-                            )
-                        )
-    return dict(timestamp=log.get('timestamp'), data=log, type='log')
+    log = json.loads(json.loads(line)["msg"])
+    if "formatter" in log.get("extra"):
+        return RawLog(
+            dict(
+                formatter=log.get("extra").get("formatter"),
+                raw=log.get("message"),
+                host=log.get("host"),
+                timestamp=log.get("timestamp"),
+            )
+        )
+    return dict(timestamp=log.get("timestamp"), data=log, type="log")
+
 
 def nginx_access(line):
-    '''
+    """
     >>> import pprint
     >>> input_line1 = '{ \
                     "remote_addr": "127.0.0.1","remote_user": "-","timestamp": "1515144699.201", \
@@ -64,26 +70,29 @@ def nginx_access(line):
      'event': 'nginx_event',
      'timestamp': '2018-01-05T09:14:46.415000',
      'type': 'metric'}
-    '''
-    #TODO Handle nginx error logs
+    """
+    # TODO Handle nginx error logs
     log = json.loads(line)
-    timestamp_iso = datetime.datetime.utcfromtimestamp(float(log['timestamp'])).isoformat()
-    log.update({'timestamp':timestamp_iso})
-    if '-' in log.get('upstream_response_time'):
-        log['upstream_response_time'] = 0.0
-    log['body_bytes_sent'] = float(log['body_bytes_sent'])
-    log['request_time'] = float(log['request_time'])
-    log['upstream_response_time'] = float(log['upstream_response_time'])
+    timestamp_iso = datetime.datetime.utcfromtimestamp(
+        float(log["timestamp"])
+    ).isoformat()
+    log.update({"timestamp": timestamp_iso})
+    if "-" in log.get("upstream_response_time"):
+        log["upstream_response_time"] = 0.0
+    log["body_bytes_sent"] = float(log["body_bytes_sent"])
+    log["request_time"] = float(log["request_time"])
+    log["upstream_response_time"] = float(log["upstream_response_time"])
 
     return dict(
-        timestamp=log.get('timestamp',' '),
+        timestamp=log.get("timestamp", " "),
         data=log,
-        type='metric',
-        event='nginx_event',
+        type="metric",
+        event="nginx_event",
     )
 
+
 def mongodb(line):
-    '''
+    """
     >>> import pprint
     >>> input_line1 = '2017-08-17T07:56:33.489+0200 I REPL     [signalProcessingThread] shutting down replication subsystems'
     >>> output_line1 = mongodb(input_line1)
@@ -106,20 +115,17 @@ def mongodb(line):
               'timestamp': '2017-08-17T07:56:33.515+0200'},
      'timestamp': '2017-08-17T07:56:33.515+0200',
      'type': 'log'}
-    '''
+    """
 
-    keys = ['timestamp', 'severity', 'component', 'context', 'message']
-    values = re.split(r'\s+', line, maxsplit=4)
-    mongodb_log = dict(zip(keys,values))
+    keys = ["timestamp", "severity", "component", "context", "message"]
+    values = re.split(r"\s+", line, maxsplit=4)
+    mongodb_log = dict(zip(keys, values))
 
-    return dict(
-        timestamp=values[0],
-        data=mongodb_log,
-        type='log',
-    )
+    return dict(timestamp=values[0], data=mongodb_log, type="log")
+
 
 def basescript(line):
-    '''
+    """
     >>> import pprint
     >>> input_line = '{"level": "warning", "timestamp": "2018-02-07T06:37:00.297610Z", "event": "exited via keyboard interrupt", "type": "log", "id": "20180207T063700_4d03fe800bd111e89ecb96000007bc65", "_": {"ln": 58, "file": "/usr/local/lib/python2.7/dist-packages/basescript/basescript.py", "name": "basescript.basescript", "fn": "start"}}'
     >>> output_line1 = basescript(input_line)
@@ -138,20 +144,21 @@ def basescript(line):
      'level': 'warning',
      'timestamp': '2018-02-07T06:37:00.297610Z',
      'type': 'log'}
-    '''
+    """
     log = json.loads(line)
 
     return dict(
-        timestamp=log['timestamp'],
+        timestamp=log["timestamp"],
         data=log,
-        id=log['id'],
-        type=log['type'],
-        level=log['level'],
-        event=log['event']
+        id=log["id"],
+        type=log["type"],
+        level=log["level"],
+        event=log["event"],
     )
 
+
 def elasticsearch(line):
-    '''
+    """
     >>> import pprint
     >>> input_line = '[2017-08-30T06:27:19,158] [WARN ][o.e.m.j.JvmGcMonitorService] [Glsuj_2] [gc][296816] overhead, spent [1.2s] collecting in the last [1.3s]'
     >>> output_line = elasticsearch(input_line)
@@ -173,53 +180,62 @@ def elasticsearch(line):
     [2017-09-13T23:15:00,415][WARN ][o.e.i.e.Engine           ] [Glsuj_2] [filebeat-2017.09.09][3] failed engine [index]
     java.nio.file.FileSystemException: /home/user/elasticsearch/data/nodes/0/indices/jsVSO6f3Rl-wwBpQyNRCbQ/3/index/_0.fdx: Too many open files
             at sun.nio.fs.UnixException.translateToIOException(UnixException.java:91) ~[?:?]
-    '''
+    """
 
     # TODO we need to handle case2 logs
     elasticsearch_log = line
-    actuallog = re.findall(r'(\[\d+\-+\d+\d+\-+\d+\w+\d+:\d+:\d+,+\d\d\d+\].*)', elasticsearch_log)
+    actuallog = re.findall(
+        r"(\[\d+\-+\d+\d+\-+\d+\w+\d+:\d+:\d+,+\d\d\d+\].*)", elasticsearch_log
+    )
     if len(actuallog) == 1:
-        keys = ['timestamp','level','message','plugin','garbage_collector','gc_count','query_time_ms', 'resp_time_ms']
-        values = re.findall(r'\[(.*?)\]', actuallog[0])
+        keys = [
+            "timestamp",
+            "level",
+            "message",
+            "plugin",
+            "garbage_collector",
+            "gc_count",
+            "query_time_ms",
+            "resp_time_ms",
+        ]
+        values = re.findall(r"\[(.*?)\]", actuallog[0])
         for index, i in enumerate(values):
             if not isinstance(i, str):
                 continue
-            if len(re.findall(r'.*ms$', i)) > 0 and 'ms' in re.findall(r'.*ms$', i)[0]:
-                num = re.split('ms', i)[0]
-                values[index]  = float(num)
+            if len(re.findall(r".*ms$", i)) > 0 and "ms" in re.findall(r".*ms$", i)[0]:
+                num = re.split("ms", i)[0]
+                values[index] = float(num)
                 continue
-            if len(re.findall(r'.*s$', i)) > 0 and 's' in re.findall(r'.*s$', i)[0]:
-                num = re.split('s', i)[0]
+            if len(re.findall(r".*s$", i)) > 0 and "s" in re.findall(r".*s$", i)[0]:
+                num = re.split("s", i)[0]
                 values[index] = float(num) * 1000
                 continue
 
-        data = dict(zip(keys,values))
-        if 'level' in data and data['level'][-1] == ' ':
-            data['level'] = data['level'][:-1]
-        if 'gc_count' in data:
-            data['gc_count'] = float(data['gc_count'])
-        event = data['message']
-        level=values[1]
-        timestamp=values[0]
+        data = dict(zip(keys, values))
+        if "level" in data and data["level"][-1] == " ":
+            data["level"] = data["level"][:-1]
+        if "gc_count" in data:
+            data["gc_count"] = float(data["gc_count"])
+        event = data["message"]
+        level = values[1]
+        timestamp = values[0]
 
         return dict(
-                timestamp=timestamp,
-                level=level,
-                type='metric',
-                data=data,
-                event=event
+            timestamp=timestamp, level=level, type="metric", data=data, event=event
         )
 
     else:
         return dict(
-                timestamp=datetime.datetime.isoformat(datetime.datetime.now()),
-                data={'raw': line}
+            timestamp=datetime.datetime.isoformat(datetime.datetime.now()),
+            data={"raw": line},
         )
 
-LOG_BEGIN_PATTERN = [re.compile(r'^\s+\['), re.compile(r'^\[')]
+
+LOG_BEGIN_PATTERN = [re.compile(r"^\s+\["), re.compile(r"^\[")]
+
 
 def elasticsearch_ispartial_log(line):
-    '''
+    """
     >>> line1 = '  [2018-04-03T00:22:38,048][DEBUG][o.e.c.u.c.QueueResizingEsThreadPoolExecutor] [search17/search]: there were [2000] tasks in [809ms], avg task time [28.4micros], EWMA task execution [790nanos], [35165.36 tasks/s], optimal queue is [35165], current capacity [1000]'
     >>> line2 = '  org.elasticsearch.ResourceAlreadyExistsException: index [media_corpus_refresh/6_3sRAMsRr2r63J6gbOjQw] already exists'
     >>> line3 = '   at org.elasticsearch.cluster.metadata.MetaDataCreateIndexService.validateIndexName(MetaDataCreateIndexService.java:151) ~[elasticsearch-6.2.0.jar:6.2.0]'
@@ -229,12 +245,13 @@ def elasticsearch_ispartial_log(line):
     True
     >>> elasticsearch_ispartial_log(line3)
     True
-    '''
+    """
     match_result = []
 
     for p in LOG_BEGIN_PATTERN:
         if re.match(p, line) != None:
             return False
     return True
+
 
 elasticsearch.ispartial = elasticsearch_ispartial_log
